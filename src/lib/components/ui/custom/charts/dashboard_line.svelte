@@ -42,6 +42,19 @@
                             time:{
                                 unit: "day"
                             }
+                        },
+                        y:{
+                            title:{
+                                display: true,
+                                align: "center",
+                                font:{
+                                    family: "Poppins",
+                                    size: 12,
+                                    weight: 500
+                                },
+                                color:"#00000080",
+                                text:"Waste Collected (KG)"
+                            }
                         }
                     },
                 },

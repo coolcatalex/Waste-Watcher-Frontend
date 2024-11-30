@@ -29,14 +29,13 @@
     
     const fetchEntries = async (page:number) => {
         loadingMoreItems = true
-        var res = await axios.get<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`, {
-            params: {
+        var res = await axios.post<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`,{
                 startDate: typeof prevDayTimestamp === 'number' ? prevDayTimestamp : prevDayTimestamp.getTime(),
                 endDate: typeof timestamp === 'number' ? timestamp : timestamp.getTime(),
                 page: page,
                 orgId: orgId || profileData?._id,
                 count: perPage
-            },
+            }, {
             headers: {
                 "Authorization": `bearer ${getCookie("RECYCLE_TOKEN")}`
             }

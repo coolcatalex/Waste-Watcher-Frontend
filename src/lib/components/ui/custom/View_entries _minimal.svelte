@@ -14,14 +14,13 @@
     export let orgId:string;
 
     const fetchEntries = async () => {
-        const response = await axios.get<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`, {
-            params: {
+        const response = await axios.post<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`,{
                 createdAtstartDate: startOfDay(createdAt_Date).getTime(),
                 createdAtendDate: endOfDay(createdAt_Date).getTime(),
                 page: 1,
                 orgId,
                 count: 50
-            },
+            }, {
             headers: {
                 "Authorization": `bearer ${getCookie("RECYCLE_TOKEN")}`
             }

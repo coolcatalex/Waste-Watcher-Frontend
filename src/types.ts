@@ -87,3 +87,14 @@ export type AWARENESS_SESSION_TYPES = {
 }
 
 
+export interface ENTRIES_AWARENESS {
+    entries: Record<string,{
+        y: number
+        x: number
+        waste_champion: boolean
+      }[]>
+    awareness: Record<string,{
+        score: number
+        x: number
+    }[]>
+}

@@ -3,19 +3,21 @@
     import Label from "$lib/components/ui/label/label.svelte";
     import * as Select from "$lib/components/ui/select";
     import { useQuery, Query} from '@sveltestack/svelte-query'
-    import { endOfDay, format } from 'date-fns';
+    import { endOfDay, format, startOfDay, subMonths } from 'date-fns';
     import axios, { AxiosError } from "axios";
     import { PUBLIC_API_SERVER } from "$env/static/public";
     import { getCookie } from "$lib/scripts/Cookie.svelte";
     import { toast } from "svelte-sonner";
     import * as Pagination from "$lib/components/ui/pagination";
     import { ChevronLeft, ChevronRight } from "lucide-svelte";
-    import type { AWARENESS_SESSION_TYPES } from "../../../types";
+    import type { AWARENESS_SESSION_TYPES, ENTRIES_AWARENESS, ENTRIES_TYPES } from "../../../types";
     import userStore from "$lib/stores/userStore";
     import selectedOrgStore from "$lib/stores/selectedOrg";
-    import Line from "$lib/components/ui/custom/charts/line.svelte";
+    import EAALine from "$lib/components/ui/custom/charts/entriesAndAwarenessLine.svelte";
     import { goto } from "$app/navigation";
     import { onMount } from "svelte";
+    import Checkbox from "$lib/components/ui/checkbox/checkbox.svelte";
+    import Datetime from "$lib/components/ui/custom/Datetime.svelte";
     // import { onMount } from "svelte";
 
     let loadingMoreItems = false
@@ -25,6 +27,9 @@
     let onboarding = $userStore.onBoarding
     $: profileData = $selectedOrgStore
     let orgId = profileData?._id ;
+    let selectedRooms:string[] = []
+    let fromTimeStamp = startOfDay(subMonths(new Date(),6))
+    let toTimeStamp = new Date()
 
     type AWARENESS_STATS = {
         wasteEntry:{date:string,weight:number}[],
@@ -46,6 +51,19 @@
         loadingMoreItems = false
         return res
     };
+
+
+    const handleOnCheckChange = (val:any, name:string) => {
+        if (val) {
+            if (!selectedRooms.includes(name)) {
+                selectedRooms = [...selectedRooms, name]; // Reassign to trigger reactivity
+                $entriesLineChart.refetch()
+            }
+        } else {
+            selectedRooms = selectedRooms.filter((_name) => _name !== name); // Reassign to trigger reactivity
+            $entriesLineChart.refetch()
+        }
+    }
 
     async function deleteAwareness(ele: EventTarget & HTMLButtonElement, awarenessId: string) {
         try {
@@ -85,6 +103,20 @@
             "Authorization": `bearer ${getCookie("RECYCLE_TOKEN")}`
         }
     }))
+
+    $: entriesLineChart = useQuery(["entriesLineChart12",fromTimeStamp,toTimeStamp,orgId || profileData?._id],()=>axios.post<ENTRIES_AWARENESS>(`${PUBLIC_API_SERVER}/auth/entries/all`,{
+            orgId: orgId || profileData?._id,
+            areaname:selectedRooms,
+            startDate: typeof fromTimeStamp === 'number' ? fromTimeStamp : fromTimeStamp.getTime(),
+            endDate: typeof toTimeStamp === 'number' ? toTimeStamp : toTimeStamp.getTime(),
+        }, {
+        headers: {
+            "Authorization": `bearer ${getCookie("RECYCLE_TOKEN")}`
+        }
+    }),{
+        refetchOnWindowFocus: false,
+    })
+    
     onMount(()=>{
         if($userStore.onBoardingComplete == false){
             toast("First onboard a org")
@@ -127,9 +159,45 @@
 </header>
 
 <div class="w-full py-4 px-6">
-    {#if $awarenessStats.isSuccess}
-        <Line heading="Waste Quantity" awareness={$awarenessStats.data.data.awarenessEntry.map(_a=>_a.awareness_session_date)} data={$awarenessStats.data.data.wasteEntry.map(_d=>({x: _d.date, y: _d.weight}))} />
-    {/if}
+    <div>
+        <div class="flex justify-start items-start mb-6">
+            <div class="flex justify-start items-start gap-4 h-fit">
+                <div class="flex justify-center items-start flex-col">
+                    <label for="">From Date:</label>
+                    <Datetime bind:startDate={fromTimeStamp}  />
+                </div>
+                <div class="flex justify-center items-start flex-col">
+                    <label for="">To Date:</label>
+                    <Datetime bind:startDate={toTimeStamp}  />
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center justify-center flex-wrap gap-4">
+                    {#each profileData.classrooms as _room}
+                        <div class="flex justify-center items-center w-fit gap-1">
+                            <Checkbox onCheckedChange={evt => handleOnCheckChange(evt,`classroom-${_room}`)} />
+                            <Label>Classroom - {_room}</Label>
+                        </div>
+                    {/each}
+                    {#each {length: profileData.offices || 0} as _,_room}
+                        <div class="flex justify-center items-center w-fit gap-1">
+                            <Checkbox onCheckedChange={evt => handleOnCheckChange(evt,`office-${_room+1}`)} />
+                            <Label>Offices - {_room + 1}</Label>
+                        </div>
+                    {/each}
+                    {#each {length: profileData.cafeterias || 0} as _,_room}
+                        <div class="flex justify-center items-center w-fit gap-1">
+                            <Checkbox onCheckedChange={evt => handleOnCheckChange(evt,`cafeterias-${_room+1}`)} />
+                            <Label>Cafeterias - {_room + 1}</Label>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+        {#if $entriesLineChart.isSuccess}
+            <EAALine heading="Waste Quantity" dataset={$entriesLineChart.data.data}  />
+        {/if}
+    </div>
     <div>
         <Query options={{
             queryKey: ["getAwareness",orgId],
@@ -142,7 +210,6 @@
                 hasMore = data.data.entries.length > 0
                 return true
             },
-            // enabled: false
         }}>
         <div class="mt-4 px-4" slot="query" let:queryResult>
             {#if queryResult.isSuccess}

@@ -52,14 +52,13 @@
         refetchInterval: false
     })
     
-    const entries = useQuery(["dashboard_entries",selectedOrg?._id],()=>axios.get<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`, {
-        params: {
+    const entries = useQuery(["dashboard_entries",selectedOrg?._id],()=>axios.post<ENTRIES_TYPES>(`${PUBLIC_API_SERVER}/auth/entries/search`,{
             page: 1,
             count: 5000,
             orgId: selectedOrg?._id,
             fromLastAwareness: true,
-            areaname
-        },
+            areaname: [areaname]
+        }, {
         headers: {
             "Authorization": `bearer ${getCookie("RECYCLE_TOKEN")}`
         }
@@ -210,7 +209,7 @@
                             Others: 0,
                     })}
                         <div class="w-2/3">
-                            <DashboardLine heading="Entries" data={$entries.data.data.entries.map(e=>({x:e.timestamp,y:e.weight}))} />
+                            <DashboardLine heading="Waste Quantity" data={$entries.data.data.entries.map(e=>({x:e.timestamp,y:e.weight}))} />
                         </div>
                         <div class="w-1/3">
                             <DashboardPie heading="" data={Object.values(pieData)} labels={Object.keys(pieData)}  />
