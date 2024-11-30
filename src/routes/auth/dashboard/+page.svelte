@@ -56,7 +56,7 @@
             page: 1,
             count: 5000,
             orgId: selectedOrg?._id,
-            fromLastAwareness: true,
+            // fromLastAwareness: true,
             areaname: [areaname]
         }, {
         headers: {
